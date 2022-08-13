@@ -15,3 +15,10 @@ func healthCheck(ctx *fasthttp.RequestCtx) {
 	response := BaseResponse{true, nil}
 	json.NewEncoder(ctx).Encode(response)
 }
+
+// questions
+func getQuestionsByTechType(ctx *fasthttp.RequestCtx) {
+	var questions []Question
+	DB.Where(&Question{TechType: ctx.UserValue("techType").(string)}).Find(&questions)
+	json.NewEncoder(ctx).Encode(&BaseResponse{Success: true, Data: questions})
+}
