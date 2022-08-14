@@ -20,7 +20,7 @@ func InitDb() {
 		template,
 		"root",
 		utils.Getenv("password", "atr"),
-		utils.Getenv("host", "localhost"),
+		utils.Getenv("host", "athi.fun"),
 		utils.Getenv("dbname", "entretien"),
 	)
 
