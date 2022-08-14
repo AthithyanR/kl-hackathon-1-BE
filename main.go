@@ -3,25 +3,20 @@ package main
 import (
 	"log"
 
-	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
-	"gorm.io/gorm"
+
+	"github.com/AthithyanR/kl-hackathon-1-BE/db"
+	"github.com/AthithyanR/kl-hackathon-1-BE/router"
+	"github.com/AthithyanR/kl-hackathon-1-BE/utils"
 )
-
-var DB *gorm.DB
-
-func initRoutes(r *router.Router) {
-	r.GET("/api/healthCheck", healthCheck)
-
-	//Questions
-	r.GET("/api/questions/byTech/{techType}", middleware(getQuestionsByTechType))
-}
 
 func main() {
 
-	DB = getDb()
-	r := router.New()
-	initRoutes(r)
+	SERVER_PORT := utils.Getenv("port", ":8080")
 
-	log.Fatal(fasthttp.ListenAndServe(":8080", r.Handler))
+	db.InitDb()
+	r := router.InitRouter()
+
+	log.Println("Application started on PORT ", SERVER_PORT)
+	log.Fatal(fasthttp.ListenAndServe(SERVER_PORT, r.Handler))
 }

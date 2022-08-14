@@ -1,4 +1,4 @@
-package main
+package models
 
 type TechType struct {
 	Id   string `json:"id"`
