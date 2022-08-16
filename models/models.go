@@ -1,5 +1,9 @@
 package models
 
+import (
+	"github.com/dgrijalva/jwt-go"
+)
+
 type TechType struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
@@ -19,4 +23,21 @@ type Question struct {
 	Option3       string `json:"option3"`
 	Option4       string `json:"option4"`
 	CorrectOption string `json:"correctOption"`
+}
+
+type User struct {
+	Id       string `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type ClaimValues struct {
+	Id    string `json:"id"`
+	Email string `json:"email"`
+}
+
+type Claims struct {
+	Id    string `json:"id"`
+	Email string `json:"email"`
+	jwt.StandardClaims
 }

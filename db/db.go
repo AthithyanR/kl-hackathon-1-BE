@@ -18,10 +18,10 @@ func InitDb() {
 
 	dsn := fmt.Sprintf(
 		template,
-		"root",
-		utils.Getenv("password", "atr"),
-		utils.Getenv("host", "athi.fun"),
-		utils.Getenv("dbname", "entretien"),
+		utils.Getenv("DB_USER", "root"),
+		utils.Getenv("DB_PASS", "password"),
+		utils.Getenv("DB_HOST", "localhost"),
+		utils.Getenv("DB_NAME", "db"),
 	)
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{

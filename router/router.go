@@ -11,11 +11,14 @@ func InitRouter() *router.Router {
 
 	r.GET("/api/healthCheck", handlers.HealthCheck)
 
+	//Auth
+	r.POST("/api/authenticate", utils.Middleware(handlers.Authenticate))
+
 	//TechTypes
-	r.GET("/api/techTypes", utils.Middleware(handlers.GetAllTechTypes))
+	r.GET("/api/techTypes", utils.MiddlewareWithAuth(handlers.GetAllTechTypes))
 
 	//Questions
-	r.GET("/api/questions", utils.Middleware(handlers.GetQuestions))
+	r.GET("/api/questions", utils.MiddlewareWithAuth(handlers.GetQuestions))
 
 	return r
 }
