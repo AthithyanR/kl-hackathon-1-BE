@@ -24,5 +24,11 @@ func InitRouter() *router.Router {
 	r.PUT("/api/questions", utils.MiddlewareWithAuth(handlers.UpdateQuestions))
 	r.DELETE("/api/questions", utils.MiddlewareWithAuth(handlers.DeleteQuestions))
 
+	//Interview Session
+	r.GET("/api/interviewSession/{sessionKey}", utils.MiddlewareWithAuth(handlers.GetInterviewSession))
+	r.GET("/api/interviewSession", utils.MiddlewareWithAuth(handlers.GetInterviewSessions))
+	r.POST("/api/interviewSession", utils.MiddlewareWithAuth(handlers.AddInterviewSession))
+	r.PUT("/api/interviewSession", utils.MiddlewareWithAuth(handlers.UpdateInterviewSession))
+
 	return r
 }
