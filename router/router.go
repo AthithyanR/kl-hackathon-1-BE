@@ -19,6 +19,10 @@ func InitRouter() *router.Router {
 
 	//Questions
 	r.GET("/api/questions", utils.MiddlewareWithAuth(handlers.GetQuestions))
+	r.GET("/api/questions/{id}", utils.MiddlewareWithAuth(handlers.GetQuestion))
+	r.POST("/api/questions", utils.MiddlewareWithAuth(handlers.AddQuestions))
+	r.PUT("/api/questions", utils.MiddlewareWithAuth(handlers.UpdateQuestions))
+	r.DELETE("/api/questions", utils.MiddlewareWithAuth(handlers.DeleteQuestions))
 
 	return r
 }

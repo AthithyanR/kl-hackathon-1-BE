@@ -5,7 +5,12 @@ import (
 	"os"
 
 	"github.com/AthithyanR/kl-hackathon-1-BE/auth"
+	"github.com/jaevor/go-nanoid"
 	"github.com/valyala/fasthttp"
+)
+
+var (
+	CanonicId, _ = nanoid.Standard(21)
 )
 
 func Getenv(key, fallback string) string {
