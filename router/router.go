@@ -16,6 +16,9 @@ func InitRouter() *router.Router {
 
 	//TechTypes
 	r.GET("/api/techTypes", utils.MiddlewareWithAuth(handlers.GetAllTechTypes))
+	r.POST("/api/techTypes", utils.MiddlewareWithAuth(handlers.AddTechTypes))
+	r.PUT("/api/techTypes", utils.MiddlewareWithAuth(handlers.UpdateTechTypes))
+	r.DELETE("/api/techTypes", utils.MiddlewareWithAuth(handlers.DeleteTechTypes))
 
 	//Questions
 	r.GET("/api/questions", utils.MiddlewareWithAuth(handlers.GetQuestions))

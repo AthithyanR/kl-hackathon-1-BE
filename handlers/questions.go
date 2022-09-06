@@ -11,9 +11,9 @@ import (
 )
 
 func GetQuestions(ctx *fasthttp.RequestCtx) {
-	var questions []models.Question
-	whereClause := &models.Question{
-		TechType:     string(ctx.QueryArgs().Peek("techType")),
+	var questions []models.QuestionList
+	whereClause := &models.QuestionList{
+		TechTypeId:   string(ctx.QueryArgs().Peek("techTypeId")),
 		QuestionType: string(ctx.QueryArgs().Peek("questionType")),
 	}
 	db.DB.Where(whereClause).Find(&questions)
@@ -21,8 +21,8 @@ func GetQuestions(ctx *fasthttp.RequestCtx) {
 }
 
 func GetQuestion(ctx *fasthttp.RequestCtx) {
-	var question models.Question
-	whereClause := &models.Question{
+	var question models.QuestionList
+	whereClause := &models.QuestionList{
 		Id: ctx.UserValue("id").(string),
 	}
 	db.DB.Where(whereClause).Find(&question)
@@ -35,6 +35,10 @@ func AddQuestions(ctx *fasthttp.RequestCtx) {
 	err := json.Unmarshal(ctx.PostBody(), &questions)
 	if err != nil {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		return
+	}
+	if len(questions) == 0 {
+		sendFailureResponse(ctx, "No resource provided")
 		return
 	}
 	for i := 0; i < len(questions); i++ {
@@ -57,6 +61,10 @@ func UpdateQuestions(ctx *fasthttp.RequestCtx) {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
+	if len(questions) == 0 {
+		sendFailureResponse(ctx, "No resource provided")
+		return
+	}
 	result := db.DB.Clauses(clause.OnConflict{
 		UpdateAll: true,
 	}).Create(&questions)
@@ -72,6 +80,10 @@ func DeleteQuestions(ctx *fasthttp.RequestCtx) {
 	err := json.Unmarshal(ctx.PostBody(), &questionIds)
 	if err != nil {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		return
+	}
+	if len(questionIds) == 0 {
+		sendFailureResponse(ctx, "No ids provided")
 		return
 	}
 	result := db.DB.Delete(&models.Question{}, questionIds)

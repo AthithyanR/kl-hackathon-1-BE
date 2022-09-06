@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/AthithyanR/kl-hackathon-1-BE/db"
 	"github.com/AthithyanR/kl-hackathon-1-BE/models"
@@ -29,7 +28,6 @@ func AddInterviewSession(ctx *fasthttp.RequestCtx) {
 	var interviewSession models.InterviewSession
 	err := json.Unmarshal(ctx.PostBody(), &interviewSession)
 	if err != nil {
-		fmt.Println(err)
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
