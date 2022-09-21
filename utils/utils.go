@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"fmt"
 	"log"
+	"net/smtp"
 	"os"
 
 	"github.com/AthithyanR/kl-hackathon-1-BE/auth"
@@ -52,4 +54,19 @@ func MiddlewareWithAuth(h fasthttp.RequestHandler) fasthttp.RequestHandler {
 		log.Println(ctx)
 		h(ctx)
 	}
+}
+
+func SendMail(recipient []string, msg string) int {
+	from := os.Getenv("MAIL_USER")
+	password := os.Getenv("MAIL_PWD")
+	host := "smtp.gmail.com"
+	port := "587"
+	body := []byte(msg)
+	auth := smtp.PlainAuth("", from, password, host)
+	err := smtp.SendMail(host+":"+port, auth, from, recipient, body)
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+	return 1
 }

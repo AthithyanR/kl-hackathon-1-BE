@@ -11,6 +11,7 @@ type QuestionList struct {
 	Option3       string `json:"option3"`
 	Option4       string `json:"option4"`
 	CorrectOption string `json:"correctOption"`
+	Marks         int    `json:"marks"`
 }
 
 func (QuestionList) TableName() string {
