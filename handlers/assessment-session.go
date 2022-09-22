@@ -34,33 +34,13 @@ func AddAssessmentSession(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	var questionData models.QuestionData
-	err = json.Unmarshal([]byte(assessmentSessionCreate.QuestionData), &questionData)
-	if err != nil {
+	if err := processAssessmentSessionCreateData(&assessmentSessionCreate); err != nil {
 		fmt.Println(err)
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
 
-	for k, v := range questionData {
-		fmt.Println(k)
-		for k2, v2 := range v {
-			fmt.Println(k2, v2)
-			if _, ok := v2.(int); ok {
-				fmt.Println("v2 is an integer")
-			} else if vtwo, ok := v2.(map[string]interface{}); ok {
-				fmt.Println("v2 is a map")
-				for k3, v3 := range vtwo {
-					fmt.Println(k3, v3)
-				}
-			}
-
-		}
-	}
-
-	candidateEmails := assessmentSessionCreate.CandidateEmails
-
-	for _, candidateEmail := range candidateEmails {
+	for _, candidateEmail := range assessmentSessionCreate.CandidateEmails {
 		sessionId := utils.CanonicId()
 		isEmailSent := utils.SendMail([]string{candidateEmail}, fmt.Sprintf("Please use this link- %s", sessionId))
 		assessmentSession := &models.AssessmentSession{
@@ -69,6 +49,7 @@ func AddAssessmentSession(ctx *fasthttp.RequestCtx) {
 			QuestionData:      assessmentSessionCreate.QuestionData,
 			TimeAllowedInMins: assessmentSessionCreate.TimeAllowedInMins,
 			IsEmailSent:       isEmailSent,
+			PossibleScore:     assessmentSessionCreate.PossibleScore,
 		}
 		result := db.DB.Create(&assessmentSession)
 		if result.Error != nil {
