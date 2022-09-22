@@ -56,7 +56,7 @@ func MiddlewareWithAuth(h fasthttp.RequestHandler) fasthttp.RequestHandler {
 	}
 }
 
-func SendMail(recipient []string, msg string) int {
+func SendMail(recipient []string, msg string) bool {
 	from := os.Getenv("MAIL_USER")
 	password := os.Getenv("MAIL_PWD")
 	host := "smtp.gmail.com"
@@ -66,7 +66,7 @@ func SendMail(recipient []string, msg string) int {
 	err := smtp.SendMail(host+":"+port, auth, from, recipient, body)
 	if err != nil {
 		fmt.Println(err)
-		return 0
+		return false
 	}
-	return 1
+	return true
 }

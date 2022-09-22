@@ -50,6 +50,7 @@ func AddAssessmentSession(ctx *fasthttp.RequestCtx) {
 			TimeAllowedInMins: assessmentSessionCreate.TimeAllowedInMins,
 			IsEmailSent:       isEmailSent,
 			PossibleScore:     assessmentSessionCreate.PossibleScore,
+			QuestionsCount:    assessmentSessionCreate.QuestionsCount,
 		}
 		result := db.DB.Create(&assessmentSession)
 		if result.Error != nil {
@@ -67,6 +68,13 @@ func UpdateAssessmentSession(ctx *fasthttp.RequestCtx) {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
+	if err := processAssessmentSessionData(&assessmentSession); err != nil {
+		fmt.Println(err)
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		return
+	}
+	isEmailSent := utils.SendMail([]string{assessmentSession.CandidateEmail}, fmt.Sprintf("Please use this link- %s", assessmentSession.Id))
+	assessmentSession.IsEmailSent = isEmailSent
 	result := db.DB.Updates(&assessmentSession)
 	if result.Error != nil {
 		sendFailureResponse(ctx, result.Error.Error())

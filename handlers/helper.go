@@ -21,13 +21,16 @@ func getAllQuestionIds(techType string, questionType string) ([]string, error) {
 	return questionIds, nil
 }
 
-func processAssessmentSessionCreateData(assessmentSessionCreate *models.AssessmentSessionCreate) error {
+func getParsedQuestionData(questionDataString string) (models.QuestionData, error) {
 	var questionData models.QuestionData
-	err := json.Unmarshal([]byte(assessmentSessionCreate.QuestionData), &questionData)
+	err := json.Unmarshal([]byte(questionDataString), &questionData)
 	if err != nil {
-		return err
+		return questionData, err
 	}
+	return questionData, nil
+}
 
+func getProcessedData(questionData models.QuestionData) (models.QuestionData, []string, error) {
 	allQuestionsId := make([]string, 0)
 
 	for techType, questionTypeData := range questionData {
@@ -36,7 +39,7 @@ func processAssessmentSessionCreateData(assessmentSessionCreate *models.Assessme
 				questionCount := int(questionCountFloat)
 				questionIds, err := getAllQuestionIds(techType, questionType)
 				if err != nil {
-					return err
+					return nil, allQuestionsId, err
 				}
 				questionIdMap := make(map[string]bool)
 				seed := rand.NewSource(time.Now().Unix())
@@ -46,7 +49,7 @@ func processAssessmentSessionCreateData(assessmentSessionCreate *models.Assessme
 				for questionCountCopy > 0 {
 					pickedQuestionId := questionIds[r.Intn(questionCount)]
 					if _, ok = questionIdMap[pickedQuestionId]; !ok {
-						questionIdMap[pickedQuestionId] = true
+						questionIdMap[pickedQuestionId] = false
 						allQuestionsId = append(allQuestionsId, pickedQuestionId)
 						questionCountCopy -= 1
 					}
@@ -62,13 +65,55 @@ func processAssessmentSessionCreateData(assessmentSessionCreate *models.Assessme
 		}
 	}
 
-	db.DB.Model(&models.Question{}).Select("sum(marks)").Where("id IN ?", allQuestionsId).Find(&assessmentSessionCreate.PossibleScore)
-	res, err := json.Marshal(questionData)
+	return questionData, allQuestionsId, nil
+}
 
+func getPossibleScore(questionIds []string) int {
+	var possibleScore int
+	db.DB.Model(&models.Question{}).Select("sum(marks)").Where("id IN ?", questionIds).Find(&possibleScore)
+	return possibleScore
+}
+
+func processAssessmentSessionCreateData(assessmentSessionCreate *models.AssessmentSessionCreate) error {
+	questionData, err := getParsedQuestionData(assessmentSessionCreate.QuestionData)
 	if err != nil {
 		return err
 	}
 
+	newQuestionData, allQuestionsId, err := getProcessedData(questionData)
+	if err != nil {
+		return err
+	}
+
+	assessmentSessionCreate.PossibleScore = getPossibleScore(allQuestionsId)
+	assessmentSessionCreate.QuestionsCount = len(allQuestionsId)
+
+	res, err := json.Marshal(newQuestionData)
+	if err != nil {
+		return err
+	}
 	assessmentSessionCreate.QuestionData = string(res)
+	return nil
+}
+
+func processAssessmentSessionData(assessmentSession *models.AssessmentSession) error {
+	questionData, err := getParsedQuestionData(assessmentSession.QuestionData)
+	if err != nil {
+		return err
+	}
+
+	newQuestionData, allQuestionsId, err := getProcessedData(questionData)
+	if err != nil {
+		return err
+	}
+
+	assessmentSession.PossibleScore = getPossibleScore(allQuestionsId)
+	assessmentSession.QuestionsCount = len(allQuestionsId)
+
+	res, err := json.Marshal(newQuestionData)
+	if err != nil {
+		return err
+	}
+	assessmentSession.QuestionData = string(res)
 	return nil
 }
