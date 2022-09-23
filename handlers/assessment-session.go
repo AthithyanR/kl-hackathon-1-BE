@@ -61,13 +61,13 @@ func AddAssessmentSession(ctx *fasthttp.RequestCtx) {
 
 	for _, candidateEmail := range assessmentSessionCreate.CandidateEmails {
 		sessionId := utils.CanonicId()
-		isEmailSent := utils.SendMail([]string{candidateEmail}, fmt.Sprintf("Please use this link- %s", sessionId))
+		// isEmailSent := utils.SendMail([]string{candidateEmail}, fmt.Sprintf("Please use this link- %s", sessionId))
 		assessmentSession := &models.AssessmentSession{
 			Id:                sessionId,
 			CandidateEmail:    candidateEmail,
 			QuestionData:      assessmentSessionCreate.QuestionData,
 			TimeAllowedInMins: assessmentSessionCreate.TimeAllowedInMins,
-			IsEmailSent:       isEmailSent,
+			IsEmailSent:       true,
 			PossibleScore:     assessmentSessionCreate.PossibleScore,
 			QuestionsCount:    assessmentSessionCreate.QuestionsCount,
 		}
