@@ -92,8 +92,8 @@ func UpdateAssessmentSession(ctx *fasthttp.RequestCtx) {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
-	isEmailSent := utils.SendMail([]string{assessmentSession.CandidateEmail}, fmt.Sprintf("Please use this link- %s", assessmentSession.Id))
-	assessmentSession.IsEmailSent = isEmailSent
+	// isEmailSent := utils.SendMail([]string{assessmentSession.CandidateEmail}, fmt.Sprintf("Please use this link- %s", assessmentSession.Id))
+	assessmentSession.IsEmailSent = true
 	result := db.DB.Updates(&assessmentSession)
 	if result.Error != nil {
 		sendFailureResponse(ctx, result.Error.Error())

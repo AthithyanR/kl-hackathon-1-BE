@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -136,7 +135,6 @@ func addQuestionMeta(assessmentSessionMeta *models.AssessmentSessionMeta, assess
 	for techTypeId, questionTypeData := range questionData {
 		assessmentSessionMeta.QuestionsMeta[techTypeId] = make(map[string]int)
 		for questionType, questionIdentifier := range questionTypeData {
-			fmt.Println(questionIdentifier)
 			if questionsSlices, ok := questionIdentifier.([]interface{}); ok {
 				assessmentSessionMeta.QuestionsMeta[techTypeId][questionType] = len(questionsSlices)
 			}
