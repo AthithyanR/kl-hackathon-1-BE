@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/AthithyanR/kl-hackathon-1-BE/db"
 	"github.com/AthithyanR/kl-hackathon-1-BE/models"
@@ -10,13 +11,31 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-func GetAssessmentSession(ctx *fasthttp.RequestCtx) {
+func GetAssessmentSessionMeta(ctx *fasthttp.RequestCtx) {
 	var assessmentSession models.AssessmentSession
+	queryParams := ctx.QueryArgs()
 	whereClause := &models.AssessmentSession{
-		Id: ctx.UserValue("sessionKey").(string),
+		Id: string(queryParams.Peek("sessionKey")),
 	}
 	db.DB.Where(whereClause).Find(&assessmentSession)
-	sendSuccessResponse(ctx, assessmentSession)
+	// to handle can start now?? logic
+	if assessmentSession.Id == "" {
+		sendSuccessResponse(ctx, nil)
+		return
+	}
+	var assessmentSessionMeta models.AssessmentSessionMeta
+	addQuestionMeta(&assessmentSessionMeta, &assessmentSession)
+	assessmentSessionMeta.CandidateEmail = assessmentSession.CandidateEmail
+	assessmentSessionMeta.QuestionsCount = assessmentSession.QuestionsCount
+	assessmentSessionMeta.TimeAllowedInMins = assessmentSession.TimeAllowedInMins
+	assessmentSessionMeta.StartTime = assessmentSession.StartTime
+
+	if assessmentSession.StartTime == nil {
+		currentTime := time.Now()
+		assessmentSession.StartTime = &currentTime
+		db.DB.Updates(&assessmentSession)
+	}
+	sendSuccessResponse(ctx, assessmentSessionMeta)
 }
 
 func GetAssessmentSessions(ctx *fasthttp.RequestCtx) {

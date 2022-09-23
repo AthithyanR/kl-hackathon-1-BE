@@ -14,7 +14,7 @@ var DB *gorm.DB
 
 func InitDb() {
 
-	template := "%s:%s@tcp(%s:3306)/%s?charset=utf8mb4"
+	template := "%s:%s@tcp(%s:3306)/%s?charset=utf8mb4&parseTime=true"
 
 	dsn := fmt.Sprintf(
 		template,

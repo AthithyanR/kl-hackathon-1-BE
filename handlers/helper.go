@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -9,10 +10,10 @@ import (
 	"github.com/AthithyanR/kl-hackathon-1-BE/models"
 )
 
-func getAllQuestionIds(techType string, questionType string) ([]string, error) {
+func getAllQuestionIds(techTypeId string, questionType string) ([]string, error) {
 	var questionIds []string
 	whereClause := &models.Question{
-		TechTypeId:   techType,
+		TechTypeId:   techTypeId,
 		QuestionType: questionType,
 	}
 	if err := db.DB.Model(&models.Question{}).Where(whereClause).Pluck("id", &questionIds).Error; err != nil {
@@ -33,15 +34,16 @@ func getParsedQuestionData(questionDataString string) (models.QuestionData, erro
 func getProcessedData(questionData models.QuestionData) (models.QuestionData, []string, error) {
 	allQuestionsId := make([]string, 0)
 
-	for techType, questionTypeData := range questionData {
+	for techTypeId, questionTypeData := range questionData {
 		for questionType, questionIdentifier := range questionTypeData {
 			if questionCountFloat, ok := questionIdentifier.(float64); ok {
 				questionCount := int(questionCountFloat)
-				questionIds, err := getAllQuestionIds(techType, questionType)
+				questionIds, err := getAllQuestionIds(techTypeId, questionType)
 				if err != nil {
 					return nil, allQuestionsId, err
 				}
 				questionIdMap := make(map[string]bool)
+				questionIdSlice := make(models.QuestionIdSlice, 0)
 				seed := rand.NewSource(time.Now().Unix())
 				r := rand.New(seed)
 				questionCountCopy := questionCount
@@ -49,19 +51,25 @@ func getProcessedData(questionData models.QuestionData) (models.QuestionData, []
 				for questionCountCopy > 0 {
 					pickedQuestionId := questionIds[r.Intn(questionCount)]
 					if _, ok = questionIdMap[pickedQuestionId]; !ok {
-						questionIdMap[pickedQuestionId] = false
+						questionIdMap[pickedQuestionId] = true
+						questionIdSlice = append(questionIdSlice, []string{pickedQuestionId, "false"})
 						allQuestionsId = append(allQuestionsId, pickedQuestionId)
 						questionCountCopy -= 1
 					}
 				}
 
-				questionData[techType][questionType] = questionIdMap
-			} else if questionsMap, ok := questionIdentifier.(map[string]interface{}); ok {
-				for questionId := range questionsMap {
-					allQuestionsId = append(allQuestionsId, questionId)
+				questionData[techTypeId][questionType] = questionIdSlice
+			} else {
+				if questionsSlices, ok := questionIdentifier.([]interface{}); ok {
+					for _, questionSlice := range questionsSlices {
+						if questionsSliceNew, ok := questionSlice.([]interface{}); ok {
+							if questionId, ok := questionsSliceNew[0].(string); ok {
+								allQuestionsId = append(allQuestionsId, questionId)
+							}
+						}
+					}
 				}
 			}
-
 		}
 	}
 
@@ -115,5 +123,25 @@ func processAssessmentSessionData(assessmentSession *models.AssessmentSession) e
 		return err
 	}
 	assessmentSession.QuestionData = string(res)
+	return nil
+}
+
+func addQuestionMeta(assessmentSessionMeta *models.AssessmentSessionMeta, assessmentSession *models.AssessmentSession) error {
+	assessmentSessionMeta.QuestionsMeta = make(models.QuestionsMeta)
+	questionData, err := getParsedQuestionData(assessmentSession.QuestionData)
+	if err != nil {
+		return err
+	}
+
+	for techTypeId, questionTypeData := range questionData {
+		assessmentSessionMeta.QuestionsMeta[techTypeId] = make(map[string]int)
+		for questionType, questionIdentifier := range questionTypeData {
+			fmt.Println(questionIdentifier)
+			if questionsSlices, ok := questionIdentifier.([]interface{}); ok {
+				assessmentSessionMeta.QuestionsMeta[techTypeId][questionType] = len(questionsSlices)
+			}
+		}
+	}
+
 	return nil
 }

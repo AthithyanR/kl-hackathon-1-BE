@@ -15,7 +15,7 @@ func InitRouter() *router.Router {
 	r.POST("/api/authenticate", utils.Middleware(handlers.Authenticate))
 
 	//TechTypes
-	r.GET("/api/techTypes", utils.MiddlewareWithAuth(handlers.GetAllTechTypes))
+	r.GET("/api/techTypes", utils.Middleware(handlers.GetAllTechTypes))
 	r.POST("/api/techTypes", utils.MiddlewareWithAuth(handlers.AddTechTypes))
 	r.PUT("/api/techTypes", utils.MiddlewareWithAuth(handlers.UpdateTechTypes))
 	r.DELETE("/api/techTypes", utils.MiddlewareWithAuth(handlers.DeleteTechTypes))
@@ -28,7 +28,7 @@ func InitRouter() *router.Router {
 	r.DELETE("/api/questions", utils.MiddlewareWithAuth(handlers.DeleteQuestions))
 
 	//Assessment Session
-	r.GET("/api/assessmentSession/{sessionKey}", utils.MiddlewareWithAuth(handlers.GetAssessmentSession))
+	r.GET("/api/assessmentSession/meta", utils.Middleware(handlers.GetAssessmentSessionMeta))
 	r.GET("/api/assessmentSession", utils.MiddlewareWithAuth(handlers.GetAssessmentSessions))
 	r.POST("/api/assessmentSession", utils.MiddlewareWithAuth(handlers.AddAssessmentSession))
 	r.PUT("/api/assessmentSession", utils.MiddlewareWithAuth(handlers.UpdateAssessmentSession))

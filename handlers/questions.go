@@ -26,6 +26,10 @@ func GetQuestion(ctx *fasthttp.RequestCtx) {
 		Id: ctx.UserValue("id").(string),
 	}
 	db.DB.Where(whereClause).Find(&question)
+	if question.Id == "" {
+		sendSuccessResponse(ctx, nil)
+		return
+	}
 	sendSuccessResponse(ctx, question)
 }
 

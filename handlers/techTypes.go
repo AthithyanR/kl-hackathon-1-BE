@@ -12,7 +12,9 @@ import (
 
 func GetAllTechTypes(ctx *fasthttp.RequestCtx) {
 	var techTypes []models.TechType
-	db.DB.Find(&techTypes)
+	if err := db.DB.Find(&techTypes).Error; err != nil {
+		sendFailureResponse(ctx, nil)
+	}
 	sendSuccessResponse(ctx, techTypes)
 }
 
