@@ -29,9 +29,12 @@ func InitRouter() *router.Router {
 
 	//Assessment Session
 	r.GET("/api/assessmentSession/meta", utils.Middleware(handlers.GetAssessmentSessionMeta))
+	r.GET("/api/assessmentSession/question", utils.Middleware(handlers.GetAssessmentSessionQuestion))
+	r.POST("/api/assessmentSession/evaluateAnswer", utils.Middleware(handlers.EvaluateAnswer))
 	r.GET("/api/assessmentSession", utils.MiddlewareWithAuth(handlers.GetAssessmentSessions))
 	r.POST("/api/assessmentSession", utils.MiddlewareWithAuth(handlers.AddAssessmentSession))
 	r.PUT("/api/assessmentSession", utils.MiddlewareWithAuth(handlers.UpdateAssessmentSession))
+	r.PUT("/api/assessmentSession/complete", utils.Middleware(handlers.CompleteAssessmentSession))
 	r.DELETE("/api/assessmentSession", utils.MiddlewareWithAuth(handlers.DeleteAssessmentSession))
 
 	return r

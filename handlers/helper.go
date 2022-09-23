@@ -61,8 +61,8 @@ func getProcessedData(questionData models.QuestionData) (models.QuestionData, []
 			} else {
 				if questionsSlices, ok := questionIdentifier.([]interface{}); ok {
 					for _, questionSlice := range questionsSlices {
-						if questionsSliceNew, ok := questionSlice.([]interface{}); ok {
-							if questionId, ok := questionsSliceNew[0].(string); ok {
+						if questionSlice, ok := questionSlice.([]interface{}); ok {
+							if questionId, ok := questionSlice[0].(string); ok {
 								allQuestionsId = append(allQuestionsId, questionId)
 							}
 						}
@@ -75,7 +75,7 @@ func getProcessedData(questionData models.QuestionData) (models.QuestionData, []
 	return questionData, allQuestionsId, nil
 }
 
-func getPossibleScore(questionIds []string) int {
+func getScoreByQuestionIds(questionIds []string) int {
 	var possibleScore int
 	db.DB.Model(&models.Question{}).Select("sum(marks)").Where("id IN ?", questionIds).Find(&possibleScore)
 	return possibleScore
@@ -92,7 +92,7 @@ func processAssessmentSessionCreateData(assessmentSessionCreate *models.Assessme
 		return err
 	}
 
-	assessmentSessionCreate.PossibleScore = getPossibleScore(allQuestionsId)
+	assessmentSessionCreate.PossibleScore = getScoreByQuestionIds(allQuestionsId)
 	assessmentSessionCreate.QuestionsCount = len(allQuestionsId)
 
 	res, err := json.Marshal(newQuestionData)
@@ -114,7 +114,7 @@ func processAssessmentSessionData(assessmentSession *models.AssessmentSession) e
 		return err
 	}
 
-	assessmentSession.PossibleScore = getPossibleScore(allQuestionsId)
+	assessmentSession.PossibleScore = getScoreByQuestionIds(allQuestionsId)
 	assessmentSession.QuestionsCount = len(allQuestionsId)
 
 	res, err := json.Marshal(newQuestionData)

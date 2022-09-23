@@ -36,3 +36,11 @@ type AssessmentSessionMeta struct {
 }
 
 type QuestionIdSlice = [][]string
+
+type AssessmentAnswer struct {
+	SessionKey     string `json:"sessionKey"`
+	TechTypeId     string `json:"techTypeId"`
+	QuestionType   string `json:"questionType"`
+	QuestionNumber int    `json:"questionNumber"`
+	ChosenOption   string `json:"chosenOption"`
+}
