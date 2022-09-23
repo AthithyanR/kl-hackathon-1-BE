@@ -101,3 +101,22 @@ func UpdateAssessmentSession(ctx *fasthttp.RequestCtx) {
 	}
 	sendSuccessResponse(ctx, nil)
 }
+
+func DeleteAssessmentSession(ctx *fasthttp.RequestCtx) {
+	var sessionIds []string
+	err := json.Unmarshal(ctx.PostBody(), &sessionIds)
+	if err != nil {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		return
+	}
+	if len(sessionIds) == 0 {
+		sendFailureResponse(ctx, "No ids provided")
+		return
+	}
+	result := db.DB.Delete(&models.AssessmentSession{}, sessionIds)
+	if result.Error != nil {
+		sendFailureResponse(ctx, result.Error.Error())
+		return
+	}
+	sendSuccessResponse(ctx, nil)
+}
