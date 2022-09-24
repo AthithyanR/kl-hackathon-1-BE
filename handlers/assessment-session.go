@@ -196,7 +196,15 @@ func AddAssessmentSession(ctx *fasthttp.RequestCtx) {
 
 	for _, candidateEmail := range assessmentSessionCreate.CandidateEmails {
 		sessionId := utils.CanonicId()
-		isEmailSent := utils.SendMail([]string{candidateEmail}, fmt.Sprintf("Please use this link- %s", sessionId))
+		subject := "Subject: Assessment Link!\n"
+		mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
+		bodyRaw := "<html><body>Please use this link - link - http://localhost:5173/assessment?sessionKey=%s</body></html>"
+		bodyWithContent := fmt.Sprintf(bodyRaw, sessionId)
+
+		isEmailSent := utils.SendMail(
+			[]string{candidateEmail},
+			subject+mime+bodyWithContent,
+		)
 		assessmentSession := &models.AssessmentSession{
 			Id:                sessionId,
 			CandidateEmail:    candidateEmail,
@@ -227,7 +235,16 @@ func UpdateAssessmentSession(ctx *fasthttp.RequestCtx) {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
-	isEmailSent := utils.SendMail([]string{assessmentSession.CandidateEmail}, fmt.Sprintf("Please use this link- %s", assessmentSession.Id))
+	subject := "Subject: Assessment Link!\n"
+	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
+	bodyRaw := "<html><body>Please use this link - link - http://localhost:5173/assessment?sessionKey=%s</body></html>"
+	bodyWithContent := fmt.Sprintf(bodyRaw, assessmentSession.Id)
+
+	fmt.Println(bodyWithContent)
+	isEmailSent := utils.SendMail(
+		[]string{assessmentSession.CandidateEmail},
+		subject+mime+bodyWithContent,
+	)
 	assessmentSession.IsEmailSent = isEmailSent
 	result := db.DB.Updates(&assessmentSession)
 	if result.Error != nil {
