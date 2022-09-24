@@ -196,13 +196,13 @@ func AddAssessmentSession(ctx *fasthttp.RequestCtx) {
 
 	for _, candidateEmail := range assessmentSessionCreate.CandidateEmails {
 		sessionId := utils.CanonicId()
-		// isEmailSent := utils.SendMail([]string{candidateEmail}, fmt.Sprintf("Please use this link- %s", sessionId))
+		isEmailSent := utils.SendMail([]string{candidateEmail}, fmt.Sprintf("Please use this link- %s", sessionId))
 		assessmentSession := &models.AssessmentSession{
 			Id:                sessionId,
 			CandidateEmail:    candidateEmail,
 			QuestionData:      assessmentSessionCreate.QuestionData,
 			TimeAllowedInMins: assessmentSessionCreate.TimeAllowedInMins,
-			IsEmailSent:       true,
+			IsEmailSent:       isEmailSent,
 			PossibleScore:     assessmentSessionCreate.PossibleScore,
 			QuestionsCount:    assessmentSessionCreate.QuestionsCount,
 		}
@@ -227,8 +227,8 @@ func UpdateAssessmentSession(ctx *fasthttp.RequestCtx) {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
-	// isEmailSent := utils.SendMail([]string{assessmentSession.CandidateEmail}, fmt.Sprintf("Please use this link- %s", assessmentSession.Id))
-	assessmentSession.IsEmailSent = true
+	isEmailSent := utils.SendMail([]string{assessmentSession.CandidateEmail}, fmt.Sprintf("Please use this link- %s", assessmentSession.Id))
+	assessmentSession.IsEmailSent = isEmailSent
 	result := db.DB.Updates(&assessmentSession)
 	if result.Error != nil {
 		sendFailureResponse(ctx, result.Error.Error())
