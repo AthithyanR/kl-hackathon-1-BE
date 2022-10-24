@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/AthithyanR/kl-hackathon-1-BE/auth"
+	"github.com/AthithyanR/kl-hackathon-1-BE/customTypes"
 	"github.com/jaevor/go-nanoid"
 	"github.com/valyala/fasthttp"
 )
@@ -56,7 +57,7 @@ func MiddlewareWithAuth(h fasthttp.RequestHandler) fasthttp.RequestHandler {
 	}
 }
 
-func SendMail(recipient []string, msg string) bool {
+func SendMail(recipient []string, msg string) customTypes.BitBool {
 	from := os.Getenv("MAIL_USER")
 	password := os.Getenv("MAIL_PWD")
 	host := "smtp.gmail.com"

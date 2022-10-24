@@ -12,7 +12,7 @@ import (
 
 func GetAllTechTypes(ctx *fasthttp.RequestCtx) {
 	var techTypes []models.TechType
-	if err := db.DB.Find(&techTypes).Error; err != nil {
+	if err := db.DB.Order("name ASC").Find(&techTypes).Error; err != nil {
 		sendFailureResponse(ctx, nil)
 	}
 	sendSuccessResponse(ctx, techTypes)
@@ -72,7 +72,7 @@ func DeleteTechTypes(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	if len(techTypeIds) == 0 {
-		sendFailureResponse(ctx, "No ids provided")
+		sendFailureResponse(ctx, "No ids are provided")
 		return
 	}
 	result := db.DB.Delete(&models.TechType{}, techTypeIds)

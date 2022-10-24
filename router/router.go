@@ -32,6 +32,7 @@ func InitRouter() *router.Router {
 	r.GET("/api/assessmentSession/question", utils.Middleware(handlers.GetAssessmentSessionQuestion))
 	r.POST("/api/assessmentSession/evaluateAnswer", utils.Middleware(handlers.EvaluateAnswer))
 	r.GET("/api/assessmentSession", utils.MiddlewareWithAuth(handlers.GetAssessmentSessions))
+	r.GET("/api/assessmentSession/{id}", utils.MiddlewareWithAuth(handlers.GetAssessmentSessionDetailsById))
 	r.POST("/api/assessmentSession", utils.MiddlewareWithAuth(handlers.AddAssessmentSession))
 	r.PUT("/api/assessmentSession", utils.MiddlewareWithAuth(handlers.UpdateAssessmentSession))
 	r.PUT("/api/assessmentSession/complete", utils.Middleware(handlers.CompleteAssessmentSession))

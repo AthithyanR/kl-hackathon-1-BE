@@ -19,7 +19,10 @@ func Authenticate(ctx *fasthttp.RequestCtx) {
 
 	var existingUser models.User
 	whereClause := &models.User{Email: requestBody.Email}
-	db.DB.Where(whereClause).Find(&existingUser)
+	if err := db.DB.Where(whereClause).Find(&existingUser).Error; err != nil {
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+		return
+	}
 
 	if existingUser.Id == "" || existingUser.Password != requestBody.Password {
 		sendFailureResponse(ctx, "Invalid username or password")

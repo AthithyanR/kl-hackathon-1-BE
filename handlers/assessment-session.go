@@ -3,34 +3,35 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/AthithyanR/kl-hackathon-1-BE/db"
 	"github.com/AthithyanR/kl-hackathon-1-BE/models"
+	"github.com/AthithyanR/kl-hackathon-1-BE/queries"
 	"github.com/AthithyanR/kl-hackathon-1-BE/utils"
 	"github.com/valyala/fasthttp"
 )
 
+// yet to do
 func GetAssessmentSessionMeta(ctx *fasthttp.RequestCtx) {
 	var assessmentSession models.AssessmentSession
 	queryParams := ctx.QueryArgs()
-	sessionKey := string(queryParams.Peek("sessionKey"))
-	if sessionKey == "" {
+	assessmentSessionId := string(queryParams.Peek("assessmentSessionId"))
+	if assessmentSessionId == "" {
 		sendSuccessResponse(ctx, nil)
 		return
 	}
 	whereClause := &models.AssessmentSession{
-		Id: sessionKey,
+		Id: assessmentSessionId,
 	}
 	db.DB.Where(whereClause).Find(&assessmentSession)
-	// to handle can start now?? logic
+	// to handle can start now logic ??
 	if assessmentSession.Id == "" || assessmentSession.EndTime != nil {
 		sendSuccessResponse(ctx, nil)
 		return
 	}
 	var assessmentSessionMeta models.AssessmentSessionMeta
-	addQuestionMeta(&assessmentSessionMeta, &assessmentSession)
+	// addQuestionMeta(&assessmentSessionMeta, &assessmentSession)
 	assessmentSessionMeta.CandidateEmail = assessmentSession.CandidateEmail
 	assessmentSessionMeta.QuestionsCount = assessmentSession.QuestionsCount
 	assessmentSessionMeta.TimeAllowedInMins = assessmentSession.TimeAllowedInMins
@@ -45,154 +46,111 @@ func GetAssessmentSessionMeta(ctx *fasthttp.RequestCtx) {
 }
 
 func GetAssessmentSessionQuestion(ctx *fasthttp.RequestCtx) {
-	var assessmentSession models.AssessmentSession
 	queryParams := ctx.QueryArgs()
-	assessmentSessionWhereClause := &models.AssessmentSession{
-		Id: string(queryParams.Peek("sessionKey")),
+	assessmentSessionId := string(queryParams.Peek("assessmentSessionId"))
+	questionId := string(queryParams.Peek("questionId"))
+
+	var assessmentSession models.AssessmentSession
+	whereClause := models.AssessmentSession{
+		Id: assessmentSessionId,
 	}
-	techTypeIdQs := string(queryParams.Peek("techTypeId"))
-	questionTypeQs := string(queryParams.Peek("questionType"))
-	questionNumberQs, _ := strconv.Atoi(string(queryParams.Peek("questionNumber")))
-	db.DB.Where(assessmentSessionWhereClause).Find(&assessmentSession)
+	if err := db.DB.Model(&models.AssessmentSession{}).
+		Where(whereClause).
+		Find(&assessmentSession).
+		Error; err != nil {
+		sendFailureResponse(ctx, err)
+		return
+	}
 	if assessmentSession.EndTime != nil {
 		sendSuccessResponse(ctx, nil)
 		return
 	}
-	questionData, err := getParsedQuestionData(assessmentSession.QuestionData)
-	if err != nil {
-		sendFailureResponse(ctx, nil)
-		return
-	}
-
-	var foundQuestionId string
-
-out:
-	for techTypeId, questionTypeData := range questionData {
-		if techTypeId != techTypeIdQs {
-			continue
-		}
-		for questionType, questionIdentifier := range questionTypeData {
-			if questionType != questionTypeQs {
-				continue
-			}
-			if questionsSlices, ok := questionIdentifier.([]interface{}); ok {
-				if questionSlice, ok := questionsSlices[questionNumberQs-1].([]interface{}); ok {
-					if questionId, ok := questionSlice[0].(string); ok {
-						foundQuestionId = questionId
-						break out
-					}
-				}
-			}
-		}
-	}
-
 	var question models.QuestionLimited
 	questionWhereClause := &models.Question{
-		Id: foundQuestionId,
+		Id: questionId,
 	}
-	db.DB.Model(&models.Question{}).Where(questionWhereClause).Find(&question)
+	if err := db.DB.Model(&models.Question{}).
+		Where(questionWhereClause).
+		Find(&question).Error; err != nil {
+		sendFailureResponse(ctx, err)
+		return
+	}
 
 	sendSuccessResponse(ctx, question)
 }
 
 func EvaluateAnswer(ctx *fasthttp.RequestCtx) {
-	var assessmentAnswer models.AssessmentAnswer
+	var assessmentAnswer models.AssessmentSessionQuestion
 	err := json.Unmarshal(ctx.PostBody(), &assessmentAnswer)
 	if err != nil {
-		fmt.Println(err)
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
-	assessmentSessionWhereClause := &models.AssessmentSession{
-		Id: assessmentAnswer.SessionKey,
-	}
 
-	var assessmentSession models.AssessmentSession
-	db.DB.Where(assessmentSessionWhereClause).Find(&assessmentSession)
-	if assessmentSession.EndTime != nil {
-		sendSuccessResponse(ctx, nil)
+	if err := db.DB.Updates(&assessmentAnswer).Error; err != nil {
+		sendFailureResponse(ctx, err)
 		return
 	}
 
-	questionData, err := getParsedQuestionData(assessmentSession.QuestionData)
-	if err != nil {
-		sendFailureResponse(ctx, nil)
+	if err := db.DB.Exec(
+		queries.UpdateScoreByAnswer,
+		assessmentAnswer.AssessmentSessionId,
+		assessmentAnswer.AssessmentSessionId,
+	).Error; err != nil {
+		sendFailureResponse(ctx, err)
 		return
 	}
 
-out:
-	for techTypeId, questionTypeData := range questionData {
-		if techTypeId != assessmentAnswer.TechTypeId {
-			continue
-		}
-		for questionType, questionIdentifier := range questionTypeData {
-			if questionType != assessmentAnswer.QuestionType {
-				continue
-			}
-			if questionsSlices, ok := questionIdentifier.([]interface{}); ok {
-				if questionSlice, ok := questionsSlices[assessmentAnswer.QuestionNumber-1].([]interface{}); ok {
-					if questionId, ok := questionSlice[0].(string); ok {
-						var count int64
-						questionWhereClause := &models.Question{
-							Id:            questionId,
-							CorrectOption: assessmentAnswer.ChosenOption,
-						}
-						db.DB.Model(&models.Question{}).Where(questionWhereClause).Count(&count)
-
-						var isCorrectAnswer string
-
-						if count == 0 {
-							isCorrectAnswer = "false"
-						} else {
-							isCorrectAnswer = "true"
-						}
-
-						if questionSlice[1] != isCorrectAnswer {
-							questionSlice[1] = isCorrectAnswer
-							questionsSlices[assessmentAnswer.QuestionNumber-1] = questionSlice
-							questionData[techTypeId][questionType] = questionsSlices
-
-							res, err := json.Marshal(questionData)
-							if err != nil {
-								sendFailureResponse(ctx, nil)
-								return
-							}
-							assessmentSession.QuestionData = string(res)
-							if err := db.DB.Updates(&assessmentSession).Error; err != nil {
-								sendFailureResponse(ctx, err)
-								return
-							}
-						}
-
-						break out
-					}
-				}
-			}
-		}
+	if err := db.DB.Exec(
+		queries.UpdateScorePercentageById,
+		assessmentAnswer.AssessmentSessionId,
+	).Error; err != nil {
+		sendFailureResponse(ctx, err)
+		return
 	}
+
 	sendSuccessResponse(ctx, nil)
 }
 
 func GetAssessmentSessions(ctx *fasthttp.RequestCtx) {
 	var assessmentSessions []models.AssessmentSession
-	db.DB.Find(&assessmentSessions)
+	if err := db.DB.Find(&assessmentSessions).Error; err != nil {
+		sendFailureResponse(ctx, err)
+		return
+	}
 	sendSuccessResponse(ctx, assessmentSessions)
 }
 
+func GetAssessmentSessionDetailsById(ctx *fasthttp.RequestCtx) {
+	var assessmentSessionDetails []models.AssessmentSessionDetails
+	assessmentSessionId := ctx.UserValue("id").(string)
+	if err := db.DB.Raw(
+		queries.GetAssessmentSessionMetaById,
+		assessmentSessionId).
+		Scan(&assessmentSessionDetails).
+		Error; err != nil {
+		sendFailureResponse(ctx, err)
+		return
+	}
+	sendSuccessResponse(ctx, assessmentSessionDetails)
+}
+
 func AddAssessmentSession(ctx *fasthttp.RequestCtx) {
-	var assessmentSessionCreate models.AssessmentSessionCreate
+	var assessmentSessionCreate models.AssessmentSessionUpsert
 	err := json.Unmarshal(ctx.PostBody(), &assessmentSessionCreate)
 	if err != nil {
-		fmt.Println(err)
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
 
-	if err := processAssessmentSessionCreateData(&assessmentSessionCreate); err != nil {
-		fmt.Println(err)
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
+	newQuestionIds, err := getQuestionIdByRandomCount(assessmentSessionCreate.RandomQuestions)
+	if err != nil {
+		sendFailureResponse(ctx, err)
 		return
 	}
+
+	allQuestionIds := append(assessmentSessionCreate.QuestionIds, newQuestionIds...)
+	possibleScore := getScoreByQuestionIds(allQuestionIds)
 
 	for _, candidateEmail := range assessmentSessionCreate.CandidateEmails {
 		sessionId := utils.CanonicId()
@@ -205,18 +163,22 @@ func AddAssessmentSession(ctx *fasthttp.RequestCtx) {
 			[]string{candidateEmail},
 			subject+mime+bodyWithContent,
 		)
+
 		assessmentSession := &models.AssessmentSession{
 			Id:                sessionId,
 			CandidateEmail:    candidateEmail,
-			QuestionData:      assessmentSessionCreate.QuestionData,
 			TimeAllowedInMins: assessmentSessionCreate.TimeAllowedInMins,
 			IsEmailSent:       isEmailSent,
-			PossibleScore:     assessmentSessionCreate.PossibleScore,
-			QuestionsCount:    assessmentSessionCreate.QuestionsCount,
+			PossibleScore:     possibleScore,
+			QuestionsCount:    len(allQuestionIds),
 		}
-		result := db.DB.Create(&assessmentSession)
-		if result.Error != nil {
-			sendFailureResponse(ctx, result.Error.Error())
+		if err := db.DB.Create(&assessmentSession).Error; err != nil {
+			sendFailureResponse(ctx, err)
+			return
+		}
+
+		if err := upsertAssessmentSessionQuestions(sessionId, allQuestionIds); err != nil {
+			sendFailureResponse(ctx, err)
 			return
 		}
 	}
@@ -224,31 +186,40 @@ func AddAssessmentSession(ctx *fasthttp.RequestCtx) {
 }
 
 func UpdateAssessmentSession(ctx *fasthttp.RequestCtx) {
-	var assessmentSession models.AssessmentSession
-	err := json.Unmarshal(ctx.PostBody(), &assessmentSession)
+	var assessmentSessionUpdate models.AssessmentSessionUpsert
+	err := json.Unmarshal(ctx.PostBody(), &assessmentSessionUpdate)
 	if err != nil {
 		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		return
 	}
-	if err := processAssessmentSessionData(&assessmentSession); err != nil {
-		fmt.Println(err)
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		return
-	}
+
 	subject := "Subject: Assessment Link!\n"
 	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
 	bodyRaw := "<html><body>Please use this link - link - http://localhost:5173/assessment?sessionKey=%s</body></html>"
-	bodyWithContent := fmt.Sprintf(bodyRaw, assessmentSession.Id)
+	bodyWithContent := fmt.Sprintf(bodyRaw, assessmentSessionUpdate.Id)
 
-	fmt.Println(bodyWithContent)
-	isEmailSent := utils.SendMail(
-		[]string{assessmentSession.CandidateEmail},
+	assessmentSessionUpdate.IsEmailSent = utils.SendMail(
+		[]string{assessmentSessionUpdate.CandidateEmail},
 		subject+mime+bodyWithContent,
 	)
-	assessmentSession.IsEmailSent = isEmailSent
-	result := db.DB.Updates(&assessmentSession)
-	if result.Error != nil {
-		sendFailureResponse(ctx, result.Error.Error())
+
+	newQuestionIds, err := getQuestionIdByRandomCount(assessmentSessionUpdate.RandomQuestions)
+	if err != nil {
+		sendFailureResponse(ctx, err)
+		return
+	}
+
+	allQuestionIds := append(assessmentSessionUpdate.QuestionIds, newQuestionIds...)
+
+	if err = upsertAssessmentSessionQuestions(assessmentSessionUpdate.Id, allQuestionIds); err != nil {
+		sendFailureResponse(ctx, err)
+		return
+	}
+
+	assessmentSessionUpdate.QuestionsCount = len(allQuestionIds)
+	assessmentSessionUpdate.PossibleScore = getScoreByQuestionIds(allQuestionIds)
+	if err := db.DB.Updates(&assessmentSessionUpdate.AssessmentSession).Error; err != nil {
+		sendFailureResponse(ctx, err)
 		return
 	}
 	sendSuccessResponse(ctx, nil)
@@ -260,39 +231,14 @@ func CompleteAssessmentSession(ctx *fasthttp.RequestCtx) {
 	whereClause := &models.AssessmentSession{
 		Id: string(queryParams.Peek("sessionKey")),
 	}
-	db.DB.Where(whereClause).Find(&assessmentSession)
+	if err := db.DB.Where(whereClause).Find(&assessmentSession).Error; err != nil {
+		sendFailureResponse(ctx, err)
+		return
+	}
 	if assessmentSession.EndTime != nil {
 		sendSuccessResponse(ctx, nil)
 		return
 	}
-
-	questionData, err := getParsedQuestionData(assessmentSession.QuestionData)
-	if err != nil {
-		sendFailureResponse(ctx, nil)
-		return
-	}
-
-	var questionIds []string
-	for _, questionTypeData := range questionData {
-		for _, questionIdentifier := range questionTypeData {
-			if questionsSlices, ok := questionIdentifier.([]interface{}); ok {
-				for _, questionSlice := range questionsSlices {
-					if questionSlice, ok := questionSlice.([]interface{}); ok {
-						if questionId, ok := questionSlice[0].(string); ok {
-							if questionSlice[1] == "true" {
-								questionIds = append(questionIds, questionId)
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	fmt.Println(getScoreByQuestionIds(questionIds))
-	assessmentSession.Score = getScoreByQuestionIds(questionIds)
-	fmt.Println(assessmentSession.Score)
-	assessmentSession.ScoreOutOf100Percent = float32(assessmentSession.Score) / float32(assessmentSession.PossibleScore) * 100
 	currentTime := time.Now()
 	assessmentSession.EndTime = &currentTime
 	if err := db.DB.Updates(&assessmentSession).Error; err != nil {
@@ -310,12 +256,12 @@ func DeleteAssessmentSession(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	if len(sessionIds) == 0 {
-		sendFailureResponse(ctx, "No ids provided")
+		sendFailureResponse(ctx, "No ids are provided")
 		return
 	}
-	result := db.DB.Delete(&models.AssessmentSession{}, sessionIds)
-	if result.Error != nil {
-		sendFailureResponse(ctx, result.Error.Error())
+
+	if err := db.DB.Delete(&models.AssessmentSession{}, sessionIds).Error; err != nil {
+		sendFailureResponse(ctx, err)
 		return
 	}
 	sendSuccessResponse(ctx, nil)

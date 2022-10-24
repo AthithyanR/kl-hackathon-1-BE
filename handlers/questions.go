@@ -87,7 +87,7 @@ func DeleteQuestions(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	if len(questionIds) == 0 {
-		sendFailureResponse(ctx, "No ids provided")
+		sendFailureResponse(ctx, "No ids are provided")
 		return
 	}
 	result := db.DB.Delete(&models.Question{}, questionIds)
